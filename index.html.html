@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="te" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>సీక్రెట్ చాట్</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Telugu:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        html { overflow-x: hidden; }
+        body { 
+            font-family: 'Noto Sans Telugu', sans-serif;
+            -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
+            background-color: #111827; 
+            display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 1rem;
+        }
+        #app-container { background-color: #1f2937; }
+        .hidden { display: none; }
+        #messages-container { 
+            background-size: cover; 
+            background-position: center; 
+            transition: background-image 0.5s ease-in-out;
+        }
+        #messages-container::-webkit-scrollbar { width: 8px; }
+        #messages-container::-webkit-scrollbar-track { background: transparent; }
+        #messages-container::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.3); border-radius: 20px; }
+        .message-bubble { max-width: 75%; word-wrap: break-word; }
+        .chat-image { max-width: 100%; border-radius: 8px; margin-top: 5px; cursor: zoom-in; }
+        .system-message { text-align: center; font-size: 0.8rem; color: #a0aec0; margin: 8px auto; padding: 4px 8px; background-color: rgba(45, 55, 72, 0.7); border-radius: 8px; display: table; }
+    </style>
+</head>
+<body class="text-white">
+
+    <audio id="notification-sound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_2c87562725.mp3" preload="auto"></audio>
+
+    <div id="app-container" class="w-full max-w-2xl h-[90vh] rounded-2xl shadow-2xl flex flex-col p-6 border border-gray-700/50">
+
+        <!-- Room Selection View -->
+        <div id="room-selection" class="flex flex-col items-center justify-center h-full text-center relative">
+            <img id="main-icon" src="https://cdn-icons-png.flaticon.com/512/747/747448.png" alt="సీక్రెట్ చాట్ ఐకాన్" class="w-16 h-16 mb-2 rounded-full object-cover">
+            <label for="icon-uploader" class="text-indigo-400 hover:text-indigo-300 text-sm cursor-pointer mb-4">ఐకాన్ మార్చండి</label>
+            <input type="file" id="icon-uploader" class="hidden" accept="image/*">
+            <h2 class="text-xl font-mono text-indigo-400 mb-2 tracking-widest">NVSSS</h2>
+            <h1 class="text-4xl font-bold mb-2">సీక్రెట్ చాట్ రూమ్</h1>
+            <p class="text-gray-300 mb-8">రియల్-టైమ్‌లో రహస్యంగా చాట్ చేయండి.</p>
+            <div class="w-full flex flex-col sm:flex-row gap-3">
+                <input id="room-id-input" type="text" placeholder="సృష్టించడానికి లేదా చేరడానికి రూమ్ పేరును ఎంటర్ చేయండి" class="flex-grow bg-gray-700 text-white border-2 border-gray-600 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed">
+                <button id="enter-room-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
+                    రూమ్‌లోకి వెళ్లండి
+                </button>
+            </div>
+             <p id="error-message" class="text-red-400 mt-4 h-6"></p>
+        </div>
+        
+        <!-- Chat View -->
+        <div id="chat-view" class="hidden h-full flex flex-col">
+              <div class="flex items-center justify-between pb-4 border-b border-gray-700">
+                  <div>
+                      <h2 class="text-xl font-bold">రూమ్: <span id="room-id-display" class="font-mono text-indigo-400"></span></h2>
+                      <div id="user-status-container" class="text-xs text-gray-400 mt-2 h-4 transition-opacity duration-300"></div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                      <button id="settings-btn" class="bg-gray-700 hover:bg-gray-600 p-2 rounded-lg" title="సెట్టింగ్స్"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></button>
+                      <button id="leave-room-btn" class="bg-red-600 hover:bg-red-700 p-2 rounded-lg text-white" title="రూమ్ వదిలి వెళ్ళండి"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></button>
+                  </div>
+              </div>
+            
+              <div id="messages-container" class="flex-grow my-4 overflow-y-auto pr-2 space-y-4 rounded-lg"></div>
+            
+              <div class="mt-auto relative">
+                  <form id="message-form" class="flex items-center gap-2 p-2 bg-gray-800 rounded-b-xl">
+                      <label for="image-uploader-input" class="bg-gray-600 hover:bg-gray-700 text-white font-bold p-3 rounded-full flex items-center justify-center cursor-pointer" title="చిత్రాన్ని జోడించండి">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                      </label>
+                      <input type="file" id="image-uploader-input" class="hidden" accept="image/*">
+                      <input id="message-input" type="text" placeholder="మీ సందేశాన్ని ఇక్కడ టైప్ చేయండి..." autocomplete="off" class="flex-grow bg-gray-700 border-2 border-gray-600 rounded-full py-3 px-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                      <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-3 rounded-full flex items-center justify-center transition-transform transform hover:scale-105" title="పంపండి"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></button>
+                  </form>
+              </div>
+        </div>
+        
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="hidden absolute inset-0 bg-black/60 flex items-center justify-center p-4 z-20">
+              <div class="bg-gray-800 rounded-lg p-6 w-full max-w-sm flex flex-col gap-4">
+                  <div class="flex justify-between items-center">
+                      <h3 class="text-lg font-bold">సెట్టింగ్స్</h3>
+                      <button id="close-settings-btn" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+                  </div>
+                  <hr class="border-gray-700">
+                  <div>
+                      <p class="mb-2">చాట్ బ్యాక్‌గ్రౌండ్ మార్చండి:</p>
+                      <label for="room-background-uploader" class="w-full text-center block bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded cursor-pointer">ఇమేజ్‌ను ఎంచుకోండి</label>
+                      <input type="file" id="room-background-uploader" class="hidden" accept="image/*">
+                  </div>
+                   <hr class="border-gray-700">
+                  <div>
+                      <p class="mb-2 text-red-400">ప్రమాదకరమైన చర్యలు</p>
+                      <button id="clear-chat-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">చాట్ హిస్టరీని క్లియర్ చేయండి</button>
+                  </div>
+              </div>
+        </div>
+
+        <!-- Confirmation Modal -->
+        <div id="confirm-modal" class="hidden absolute inset-0 bg-black/70 flex items-center justify-center p-4 z-30">
+            <div class="bg-gray-800 rounded-lg p-6 w-full max-w-sm flex flex-col gap-4 text-center">
+                <h3 id="confirm-title" class="text-lg font-bold">నిర్ధారించండి</h3>
+                <p id="confirm-message" class="text-gray-300">మీరు ఖచ్చితంగా కొనసాగించాలనుకుంటున్నారా?</p>
+                <div class="flex justify-end gap-4 mt-4">
+                    <button id="confirm-cancel-btn" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded">రద్దు చేయండి</button>
+                    <button id="confirm-ok-btn" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded">నిర్ధారించండి</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, doc, getDoc, setDoc, updateDoc, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+
+        // --- DOM Elements ---
+        const roomSelectionView = document.getElementById('room-selection');
+        const chatView = document.getElementById('chat-view');
+        const enterRoomBtn = document.getElementById('enter-room-btn');
+        const roomIdInput = document.getElementById('room-id-input');
+        const roomIdDisplay = document.getElementById('room-id-display');
+        const messagesContainer = document.getElementById('messages-container');
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('message-input');
+        const errorMessage = document.getElementById('error-message');
+        const userStatusContainer = document.getElementById('user-status-container');
+        const leaveRoomBtn = document.getElementById('leave-room-btn');
+        const mainIcon = document.getElementById('main-icon');
+        const iconUploader = document.getElementById('icon-uploader');
+        const settingsBtn = document.getElementById('settings-btn');
+        const settingsModal = document.getElementById('settings-modal');
+        const closeSettingsBtn = document.getElementById('close-settings-btn');
+        const notificationSound = document.getElementById('notification-sound');
+        const clearChatBtn = document.getElementById('clear-chat-btn');
+        const imageUploaderInput = document.getElementById('image-uploader-input');
+        const roomBackgroundUploader = document.getElementById('room-background-uploader');
+        const confirmModal = document.getElementById('confirm-modal');
+        const confirmTitle = document.getElementById('confirm-title');
+        const confirmMessage = document.getElementById('confirm-message');
+        const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+        const confirmOkBtn = document.getElementById('confirm-ok-btn');
+
+        // --- State variables ---
+        let db, auth, storage;
+        let userId = null;
+        let currentRoomId = null;
+        let unsubscribeMessages = null;
+        let unsubscribePresence = null;
+        let presenceIntervalId = null;
+        let typingTimeoutId = null;
+
+        // --- Firebase Initialization ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        
+        async function initializeFirebase() {
+            // --- Netlifyలో లేదా ఇతర స్టాటిక్ హోస్టింగ్‌లో అమలు చేయడానికి ఫైర్‌బేస్ కాన్ఫిగరేషన్ ---
+            // మీ ఫైర్‌బేస్ ప్రాజెక్ట్ నుండి కాన్ఫిగరేషన్‌ను కాపీ చేసి ఇక్కడ అతికించండి.
+            // ఈ వివరాలను మీ ఫైర్‌బేస్ ప్రాజెక్ట్ సెట్టింగ్‌లలోని "General" ట్యాబ్‌లో కనుగొనవచ్చు.
+            // For deploying on Netlify or other static hosting, paste your Firebase config here.
+            // You can find this in your Firebase project settings under the "General" tab.
+            const firebaseConfig = {
+                apiKey: "AIzaSyAKzMPJSlRc-4JYAMvcAdihduRdxgj-UAs",
+                authDomain: "nvsss-7a4cf.firebaseapp.com",
+                projectId: "nvsss-7a4cf",
+                storageBucket: "nvsss-7a4cf.appspot.com",
+                messagingSenderId: "55825756909",
+                appId: "1:55825756909:web:5f31332ea30fed7a9712e4",
+                measurementId: "G-EWPBG8ZVP0"
+            };
+
+            // Canvas/Preview వాతావరణంలో కాకుండా ఇతర చోట్ల రన్ చేస్తున్నప్పుడు, కాన్ఫిగరేషన్ తప్పనిసరి.
+            if (firebaseConfig.apiKey === "మీ-API-కీ-ఇక్కడ-అతికించండి" && typeof __firebase_config === 'undefined') {
+                errorMessage.textContent = "ఫైర్‌బేస్ కాన్ఫిగరేషన్ అవసరం. దయచేసి కోడ్‌లో మీ వివరాలను జోడించండి.";
+                enterRoomBtn.disabled = true;
+                roomIdInput.disabled = true;
+                roomIdInput.placeholder = "కాన్ఫిగరేషన్ లోపం";
+                return; 
+            }
+
+            // __firebase_config వేరియబుల్ ఉంటే దాన్ని ఉపయోగించండి, లేకపోతే పైన ఉన్నదాన్ని ఉపయోగించండి.
+            const finalConfig = (typeof __firebase_config !== 'undefined' && __firebase_config) 
+                ? JSON.parse(__firebase_config) 
+                : firebaseConfig;
+
+            try {
+                const app = initializeApp(finalConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                storage = getStorage(app);
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        enableRoomSelection();
+                    } else {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            try {
+                                await signInWithCustomToken(auth, __initial_auth_token);
+                            } catch (authError) {
+                                console.error("Custom token sign-in failed:", authError);
+                                errorMessage.textContent = "ప్రామాణీకరణ విఫలమైంది.";
+                                await signInAnonymously(auth);
+                            }
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    }
+                });
+                const savedIcon = localStorage.getItem('customIconDataUrl');
+                if (savedIcon) { mainIcon.src = savedIcon; }
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                errorMessage.textContent = "అప్లికేషన్ ప్రారంభించడంలో విఫలమైంది. దయచేసి ఫైర్‌బేస్ కాన్ఫిగరేషన్ సరిగ్గా ఉందో లేదో తనిఖీ చేయండి.";
+                enterRoomBtn.disabled = true;
+                roomIdInput.disabled = true;
+                roomIdInput.placeholder = "ప్రారంభించడంలో విఫలమైంది";
+            }
+        }
+        
+        // --- Room Management ---
+        async function enterRoom() {
+            const roomId = roomIdInput.value.trim();
+            if (!roomId) {
+                errorMessage.textContent = "దయచేసి రూమ్ పేరును ఎంటర్ చేయండి.";
+                return;
+            }
+            enterRoomBtn.disabled = true; // Disable button while joining
+            const roomRef = doc(db, `/artifacts/${appId}/public/data/secret_chat_rooms/${roomId}`);
+            const roomSnap = await getDoc(roomRef);
+            if (roomSnap.exists()) {
+                await joinRoom(roomId);
+            } else {
+                await createRoomWithId(roomId);
+            }
+            enterRoomBtn.disabled = false;
+        }
+
+        async function createRoomWithId(roomId) {
+            if (!db || !userId) return;
+            const roomRef = doc(db, `/artifacts/${appId}/public/data/secret_chat_rooms/${roomId}`);
+            await setDoc(roomRef, { createdAt: serverTimestamp(), creator: userId });
+            await joinRoom(roomId);
+        }
+
+        async function joinRoom(roomId) {
+            currentRoomId = roomId;
+            roomIdDisplay.textContent = currentRoomId;
+
+            const localBg = localStorage.getItem(`roomBg_${currentRoomId}`);
+            if (localBg) {
+                messagesContainer.style.backgroundImage = `url(${localBg})`;
+            } else {
+                messagesContainer.style.backgroundImage = 'none';
+            }
+
+            roomSelectionView.classList.add('hidden');
+            chatView.classList.remove('hidden');
+            messageInput.focus();
+            listenForMessages(currentRoomId);
+            listenForPresence(currentRoomId);
+            await updateUserPresence('online');
+            if (presenceIntervalId) clearInterval(presenceIntervalId);
+            presenceIntervalId = setInterval(() => updateUserPresence('online'), 45000);
+        }
+
+        async function leaveRoom() {
+            await updateUserPresence('offline');
+            if (unsubscribeMessages) unsubscribeMessages();
+            if (unsubscribePresence) unsubscribePresence();
+            if (presenceIntervalId) clearInterval(presenceIntervalId);
+            
+            presenceIntervalId = null;
+            currentRoomId = null;
+            messagesContainer.innerHTML = '';
+            userStatusContainer.innerHTML = '';
+            messagesContainer.style.backgroundImage = 'none';
+            chatView.classList.add('hidden');
+            roomSelectionView.classList.remove('hidden');
+            roomIdInput.value = '';
+        }
+
+        // --- Presence and Listeners ---
+        async function updateUserPresence(status) {
+            if (!db || !userId || !currentRoomId) return;
+            const presenceRef = doc(db, `/artifacts/${appId}/public/data/secret_chat_rooms/${currentRoomId}/members/${userId}`);
+            try {
+                await setDoc(presenceRef, { status: status, lastSeen: serverTimestamp() }, { merge: true });
+            } catch (error) { console.error("Error updating presence:", error); }
+        }
+
+        function listenForPresence(roomId) {
+            if (unsubscribePresence) unsubscribePresence();
+            const membersCollection = collection(db, `/artifacts/${appId}/public/data/secret_chat_rooms/${roomId}/members`);
+            let initialLoad = true;
+            let members = new Map();
+            unsubscribePresence = onSnapshot(membersCollection, (snapshot) => {
+                const currentMembers = new Map(snapshot.docs.map(doc => [doc.id, doc.data()]));
+                if (!initialLoad) {
+                    currentMembers.forEach((data, id) => {
+                        if (!members.has(id)) { sendSystemMessage(`యూజర్ ${id.substring(0,4)}... చేరారు`); }
+                    });
+                    members.forEach((data, id) => {
+                        if (!currentMembers.has(id)) { sendSystemMessage(`యూజర్ ${id.substring(0,4)}... వెళ్లిపోయారు`); }
+                    });
+                }
+                members = currentMembers;
+                initialLoad = false;
+                
+                const otherUsers = Array.from(members.values()).filter(member => member.id !== userId);
+                 if (members.size <= 1) {
+                    userStatusContainer.textContent = 'మీరు మాత్రమే ఈ రూమ్‌లో ఉన్నారు.';
+                } else {
+                     const typingUsers = otherUsers.filter(u => u.status === 'typing');
+                     const onlineUsers = Array.from(members.values()).filter(u => (Date.now() - (u.lastSeen?.toDate().getTime() || 0)) < 60000);
+
+                     if (typingUsers.length > 0) {
+                         const typingNames = typingUsers.map(u => u.id.substring(0,4) + '...').join(', ');
+                         userStatusContainer.innerHTML = `<span class="italic text-indigo-400">${typingNames} టైప్ చేస్తున్నారు...</span>`;
+                     } else if (onlineUsers.length > 1) {
+                         userStatusContainer.innerHTML = `<span class="font-bold text-green-400">●</span> ${onlineUsers.length} మంది ఆన్‌లైన్‌లో ఉన్నారు`;
+                     } else {
+                         userStatusContainer.textContent = `${members.size} మంది సభ్యులు`;
+                     }
+                }
+            });
+        }
+        
+        function listenForMessages(roomId) {
+            if (unsubscribeMessages) unsubscribeMessages();
+            const messagesCollection = collection(db, `/artifacts/${appId}/public/data/secret_chat_rooms/${roomId}/messages`);
+            const q = query(messagesCollection);
+            unsubscribeMessages = onSnapshot(q, (snapshot) => {
+                const allMessages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
+                messagesContainer.innerHTML = '';
+                allMessages.forEach(displayMessage);
+                if (messagesContainer.scrollTop + messagesContainer.clientHeight + 200 > messagesContainer.scrollHeight) {
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }
+            });
+        }
+
+        // --- Messaging ---
+        async function sendMessage(event, imageUrl = null) {
+            if (event) event.preventDefault();
+            const messageText = messageInput.value.trim();
+            if (!messageText && !imageUrl) return;
+            const messageData = { senderId: userId, timestamp: serverTimestamp() };
+            if (messageText) messageData.text = messageText;
+            if (imageUrl) messageData.imageUrl = imageUrl;
+            try {
+                await addDoc(collection(db, `/artifacts/${appId}/public/data/secret_chat_rooms/${currentRoomId}/messages`), messageData);
+                messageInput.value = '';
+                updateUserPresence('online');
+            } catch (error) { console.error("Error sending message:", error); }
+        }
+
+        async function sendSystemMessage(text) {
+            try {
+                await addDoc(collection(db, `/artifacts/${appId}/public/data/secret_chat_rooms/${currentRoomId}/messages`), {
+                    text: text,
+                    senderId: 'system',
+                    timestamp: serverTimestamp()
+                });
+            } catch (error) { console.error("Error sending system message:", error); }
+        }
+
+        function displayMessage(message) {
+            if (message.senderId === 'system') {
+                const systemMessageDiv = document.createElement('div');
+                systemMessageDiv.classList.add('system-message');
+                systemMessageDiv.textContent = message.text;
+                messagesContainer.appendChild(systemMessageDiv);
+                return;
+            }
+            const isMyMessage = message.senderId === userId;
+            const messageWrapper = document.createElement('div');
+            messageWrapper.classList.add('flex', 'w-full', isMyMessage ? 'justify-end' : 'justify-start');
+            const messageBubble = document.createElement('div');
+            messageBubble.classList.add('p-3', 'rounded-xl', 'message-bubble', isMyMessage ? 'bg-indigo-600' : 'bg-gray-600', 'text-white');
+            
+            if (message.imageUrl) {
+                const img = document.createElement('img');
+                img.src = message.imageUrl;
+                img.classList.add('chat-image');
+                img.onclick = () => window.open(message.imageUrl, '_blank');
+                messageBubble.appendChild(img);
+            }
+            if (message.text) {
+                const messageText = document.createElement('p');
+                messageText.textContent = message.text;
+                messageBubble.appendChild(messageText);
+            }
+            const timeAndStatus = document.createElement('span');
+            timeAndStatus.classList.add('block', 'text-xs', 'text-right', 'opacity-70', 'mt-1');
+            timeAndStatus.textContent = formatMessageTime(message.timestamp);
+            messageBubble.appendChild(timeAndStatus);
+            messageWrapper.appendChild(messageBubble);
+            messagesContainer.appendChild(messageWrapper);
+
+            if (!isMyMessage && document.visibilityState !== 'visible' && notificationSound) {
+                notificationSound.play().catch(e => console.error("Audio play failed", e));
+            }
+        }
+        
+        // --- Settings and Actions ---
+        async function uploadImageAndSend(file) {
+            if (!file || !currentRoomId || !storage) return;
+            const filePath = `chat_images/${currentRoomId}/${userId}_${Date.now()}_${file.name}`;
+            const storageRef = ref(storage, filePath);
+            try {
+                const snapshot = await uploadBytes(storageRef, file);
+                const downloadURL = await getDownloadURL(snapshot.ref);
+                sendMessage(null, downloadURL);
+            } catch (error) {
+                console.error("Error uploading image: ", error);
+                alert("ఫోటో అప్‌లోడ్ విఫలమైంది.");
+            }
+        }
+        
+        function updateRoomBackground(event) {
+            const file = event.target.files[0];
+            if (!file || !currentRoomId) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const dataUrl = e.target.result;
+                localStorage.setItem(`roomBg_${currentRoomId}`, dataUrl);
+                messagesContainer.style.backgroundImage = `url(${dataUrl})`;
+            };
+            reader.readAsDataURL(file);
+
+            settingsModal.classList.add('hidden');
+        }
+
+        async function clearChatHistory() {
+            if (!db || !currentRoomId) return;
+            const messagesCollection = collection(db, `/artifacts/${appId}/public/data/secret_chat_rooms/${currentRoomId}/messages`);
+            const messageSnapshot = await getDocs(messagesCollection);
+            const deletePromises = messageSnapshot.docs.map(doc => deleteDoc(doc.ref));
+            await Promise.all(deletePromises);
+            settingsModal.classList.add('hidden');
+        }
+
+        // --- Utility Functions ---
+        function enableRoomSelection() {
+            enterRoomBtn.disabled = false;
+            roomIdInput.disabled = false;
+            roomIdInput.placeholder = "సృష్టించడానికి లేదా చేరడానికి రూమ్ పేరును ఎంటర్ చేయండి";
+        }
+        
+        function formatMessageTime(timestamp) {
+            if (!timestamp || !timestamp.toDate) return '';
+            return timestamp.toDate().toLocaleTimeString('te-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
+        }
+
+        function showConfirmModal(title, message, onConfirm) {
+            confirmTitle.textContent = title;
+            confirmMessage.textContent = message;
+            confirmModal.classList.remove('hidden');
+
+            const confirmHandler = () => {
+                onConfirm();
+                hideConfirmModal();
+            };
+            
+            const cancelHandler = () => {
+                hideConfirmModal();
+            };
+
+            const hideConfirmModal = () => {
+                confirmModal.classList.add('hidden');
+                confirmOkBtn.removeEventListener('click', confirmHandler);
+                confirmCancelBtn.removeEventListener('click', cancelHandler);
+            };
+
+            confirmOkBtn.addEventListener('click', confirmHandler, { once: true });
+            confirmCancelBtn.addEventListener('click', cancelHandler, { once: true });
+        }
+        
+        // --- Event Listeners ---
+        messageForm.addEventListener('submit', sendMessage);
+        enterRoomBtn.addEventListener('click', enterRoom);
+        roomIdInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') enterRoom(); });
+        leaveRoomBtn.addEventListener('click', leaveRoom);
+        messageInput.addEventListener('input', () => {
+            if (!currentRoomId) return;
+            updateUserPresence('typing');
+            if (typingTimeoutId) clearTimeout(typingTimeoutId);
+            typingTimeoutId = setTimeout(() => {
+                updateUserPresence('online');
+                typingTimeoutId = null;
+            }, 2000);
+        });
+        iconUploader.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    mainIcon.src = e.target.result;
+                    localStorage.setItem('customIconDataUrl', e.target.result);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
+        closeSettingsBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
+        clearChatBtn.addEventListener('click', () => {
+            showConfirmModal(
+                'చాట్ క్లియర్ చేయండి',
+                'హెచ్చరిక: ఈ రూమ్‌లోని అన్ని సందేశాలు శాశ్వతంగా తొలగించబడతాయి. మీరు కొనసాగించాలనుకుంటున్నారా?',
+                clearChatHistory
+            );
+        });
+        imageUploaderInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) uploadImageAndSend(file);
+        });
+        roomBackgroundUploader.addEventListener('change', updateRoomBackground);
+
+        // Disable context menu and some shortcuts
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('keydown', e => {
+            if (e.ctrlKey && ['c', 'x', 'u'].includes(e.key.toLowerCase())) {
+                e.preventDefault();
+            }
+        });
+        
+        // --- Initialize App ---
+        initializeFirebase();
+    </script>
+</body>
+</html>
+

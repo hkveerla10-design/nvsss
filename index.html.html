@@ -36,7 +36,7 @@
 
     <audio id="notification-sound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_2c87562725.mp3" preload="auto"></audio>
 
-    <div id="app-container" class="w-full max-w-2xl h-[90vh] rounded-2xl shadow-2xl flex flex-col p-6 border border-gray-700/50">
+    <div id="app-container" class="w-full max-w-2xl h-[90vh] rounded-2xl shadow-2xl flex flex-col p-6 border border-gray-700/50 relative">
 
         <!-- Room Selection View -->
         <div id="room-selection" class="flex flex-col items-center justify-center h-full text-center relative">
@@ -165,12 +165,13 @@
         
         async function initializeFirebase() {
             const firebaseConfig = {
-                apiKey: "మీ-API-కీ-ఇక్కడ-అతికించండి",
-                authDomain: "మీ-ప్రాజెక్ట్-id.firebaseapp.com",
-                projectId: "మీ-ప్రాజెక్ట్-id",
-                storageBucket: "మీ-ప్రాజెక్ట్-id.appspot.com",
-                messagingSenderId: "మీ-పంపినవారి-id",
-                appId: "మీ-అనువర్తన-id"
+                apiKey: "AIzaSyAKzMPJSlRc-4JYAMvcAdihduRdxgj-UAs",
+                authDomain: "nvsss-7a4cf.firebaseapp.com",
+                projectId: "nvsss-7a4cf",
+                storageBucket: "nvsss-7a4cf.appspot.com",
+                messagingSenderId: "55825756909",
+                appId: "1:55825756909:web:5f31332ea30fed7a9712e4",
+                measurementId: "G-EWPBG8ZVP0"
             };
 
             if (firebaseConfig.apiKey === "మీ-API-కీ-ఇక్కడ-అతికించండి" && typeof __firebase_config === 'undefined') {
@@ -316,7 +317,7 @@
                 if (!initialLoad) {
                     currentMembers.forEach((data, id) => {
                         if (!members.has(id)) { 
-                           sendSystemMessage(`యూజర్ ${id.substring(0,4)}... చేరారు`); 
+                            sendSystemMessage(`యూజర్ ${id.substring(0,4)}... చేరారు`); 
                         }
                     });
                     members.forEach((data, id) => {
@@ -355,12 +356,25 @@
             const q = query(messagesCollection);
             unsubscribeMessages = onSnapshot(q, (snapshot) => {
                 const allMessages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-                    .sort((a, b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
+                    .filter(m => m.timestamp) // Ensure message has a timestamp
+                    .sort((a, b) => a.timestamp.seconds - b.timestamp.seconds);
                 
                 const isScrolledToBottom = messagesContainer.scrollHeight - messagesContainer.clientHeight <= messagesContainer.scrollTop + 100;
 
                 messagesContainer.innerHTML = '';
-                allMessages.forEach(displayMessage);
+                let lastMessageDateString = null;
+
+                allMessages.forEach(message => {
+                    const messageDate = message.timestamp.toDate();
+                    const currentDateString = messageDate.toLocaleDateString();
+
+                    if (currentDateString !== lastMessageDateString) {
+                        addDateSeparator(messageDate);
+                        lastMessageDateString = currentDateString;
+                    }
+
+                    displayMessage(message);
+                });
                 
                 if (isScrolledToBottom) {
                     messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -407,7 +421,7 @@
             
             const isMyMessage = message.senderId === userId;
             const messageWrapper = document.createElement('div');
-            messageWrapper.classList.add('flex', 'w-full', 'items-center', 'group', isMyMessage ? 'justify-end' : 'justify-start');
+            messageWrapper.classList.add('flex', 'w-full', 'items-end', 'group', isMyMessage ? 'justify-end' : 'justify-start');
             
             const messageBubble = document.createElement('div');
             messageBubble.classList.add('p-3', 'rounded-xl', 'message-bubble', isMyMessage ? 'bg-indigo-600' : 'bg-gray-600', 'text-white');
@@ -418,7 +432,7 @@
                 img.classList.add('chat-image');
                 img.onload = () => {
                      if(messagesContainer.scrollTop + messagesContainer.clientHeight > messagesContainer.scrollHeight - 200) {
-                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                         messagesContainer.scrollTop = messagesContainer.scrollHeight;
                      }
                 }
                 img.onclick = () => window.open(message.imageUrl, '_blank');
@@ -607,6 +621,26 @@
         function formatMessageTime(timestamp) {
             if (!timestamp || !timestamp.toDate) return '';
             return timestamp.toDate().toLocaleTimeString('te-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
+        }
+        
+        function addDateSeparator(date) {
+            const separatorDiv = document.createElement('div');
+            separatorDiv.classList.add('system-message', 'my-2'); 
+            
+            const today = new Date();
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            if (date.toDateString() === today.toDateString()) {
+                separatorDiv.textContent = 'ఈ రోజు'; // Today
+            } else if (date.toDateString() === yesterday.toDateString()) {
+                separatorDiv.textContent = 'నిన్న'; // Yesterday
+            } else {
+                separatorDiv.textContent = date.toLocaleDateString('te-IN', {
+                    year: 'numeric', month: 'long', day: 'numeric'
+                });
+            }
+            messagesContainer.appendChild(separatorDiv);
         }
 
         function showConfirmModal(title, message, onConfirm) {
